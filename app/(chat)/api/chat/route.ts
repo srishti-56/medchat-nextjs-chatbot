@@ -39,7 +39,8 @@ type AllowedTools =
   | 'createDocument'
   | 'updateDocument'
   | 'requestSuggestions'
-  | 'getWeather';
+  | 'getWeather'
+  | 'getDocument';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -49,7 +50,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getDocument'];
 
 export async function POST(request: Request) {
   const {
@@ -405,6 +406,30 @@ export async function POST(request: Request) {
                 title: document.title,
                 kind: document.kind,
                 message: 'Suggestions have been added to the document',
+              };
+            },
+          },
+          getDocument: {
+            description: 'Get a document by its ID when the message contains "getDocumentTool"',
+            parameters: z.object({
+              documentId: z.string().describe('The ID of the document to retrieve'),
+            }),
+            execute: async ({ documentId }) => {
+              const document = await getDocumentById({ id: documentId });
+
+              if (!document) {
+                return {
+                  error: 'Document not found',
+                  id: documentId,
+                };
+              }
+
+              return {
+                id: document.id,
+                title: document.title,
+                content: document.content,
+                kind: document.kind,
+                createdAt: document.createdAt,
               };
             },
           },

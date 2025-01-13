@@ -141,6 +141,22 @@ const PurePreviewMessage = ({
                             isReadonly={isReadonly}
                             result={result}
                           />
+                        ) : toolName === 'getDocument' ? (
+                          <div className="flex flex-col gap-2 p-4 border rounded-lg">
+                            <h3 className="font-semibold">{result.title}</h3>
+                            {result.error ? (
+                              <p className="text-destructive">{result.error}</p>
+                            ) : (
+                              <>
+                                <p className="text-sm text-muted-foreground">
+                                  Type: {result.kind}
+                                </p>
+                                <div className="mt-2">
+                                  <Markdown>{result.content}</Markdown>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         ) : toolName === 'updateDocument' ? (
                           <DocumentToolResult
                             type="update"

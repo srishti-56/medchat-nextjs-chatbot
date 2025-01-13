@@ -34,7 +34,20 @@ Do not update document right after creating it. Wait for user feedback or reques
 export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
-export const systemPrompt = `${regularPrompt}\n\n${blocksPrompt}`;
+export const systemPrompt = `You are a helpful AI assistant.
+
+When a user mentions "getDocumentTool" in their message and provides a document ID, use the getDocument tool to retrieve and show the document's contents.
+
+Available tools:
+- getDocument: Retrieves a document by its ID
+- createDocument: Creates a new document
+- updateDocument: Updates an existing document
+- requestSuggestions: Gets suggestions for a document
+- getWeather: Gets weather information
+
+Example usage: If a user says "Can you show me the document with ID abc-123 using getDocumentTool", use the getDocument tool with documentId: "abc-123".
+
+${regularPrompt}\n\n${blocksPrompt}`;
 
 export const codePrompt = `
 You are a Python code generator that creates self-contained, executable code snippets. When writing code:
