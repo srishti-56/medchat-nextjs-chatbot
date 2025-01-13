@@ -20,6 +20,12 @@ export const models: Array<Model> = [
     apiIdentifier: 'gpt-4o',
     description: 'For complex, multi-step tasks',
   },
+  {
+    id: 'ministral-3b-latest',
+    label: 'Ministral-3b-latest',
+    apiIdentifier : 'ministral-3b-latest',
+    description: 'Not private: anonymized data sent to Mistral'
+  }
 ] as const;
 
-export const DEFAULT_MODEL_NAME: string = 'gpt-4o-mini';
+export const DEFAULT_MODEL_NAME: string = 'ministral-3b-latest';
