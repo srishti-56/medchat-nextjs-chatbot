@@ -367,11 +367,12 @@ export async function POST(request: Request) {
             },
           },
           getDoctorBySpeciality: {
-            description: 'Query doctors database by medical specialty',
+            description: 'Query doctors database by medical specialty and optionally filter by city',
             parameters: z.object({
               speciality: z.string().describe('The medical specialty to search for'),
+              city: z.string().optional().describe('Optional city to filter doctors'),
             }),
-            execute: async ({ speciality }) => {
+            execute: async ({ speciality, city }) => {
               const doctors = await getDoctorBySpeciality(speciality);
               
               if (!doctors || doctors.length === 0) {
@@ -383,26 +384,36 @@ export async function POST(request: Request) {
 
               // Group doctors by city
               const doctorsByCity = doctors.reduce<Record<string, typeof doctors>>((acc, doctor) => {
-                const city = doctor.city || 'Bangalore';
-                if (!acc[city]) {
-                  acc[city] = [];
+                const docCity = doctor.city || 'Unknown';
+                if (!acc[docCity]) {
+                  acc[docCity] = [];
                 }
-                acc[city].push(doctor);
+                acc[docCity].push(doctor);
                 return acc;
               }, {});
 
-              // Select a random city with at least two doctors
-              const cities = Object.keys(doctorsByCity).filter(city => doctorsByCity[city].length >= 2);
-              if (cities.length === 0) {
-                return {
-                  error: 'Not enough doctors in the same city for selection',
-                  speciality,
-                };
+              let selectedDoctors;
+              
+              if (city) {
+                // If city provided, try to get doctors from that city
+                const cityDoctors = doctorsByCity[city];
+                if (cityDoctors && cityDoctors.length > 0) {
+                  selectedDoctors = cityDoctors.sort(() => 0.5 - Math.random()).slice(0, 2);
+                }
               }
-              const randomCity = cities[Math.floor(Math.random() * cities.length)];
-              const selectedDoctors = doctorsByCity[randomCity].sort(() => 0.5 - Math.random()).slice(0, 2);
+              
+              if (!selectedDoctors) {
+                // If no city provided or no doctors in specified city, pick from a random city
+                const cities = Object.keys(doctorsByCity).filter(c => doctorsByCity[c].length >= 2);
+                if (cities.length === 0) {
+                  // If no city has 2+ doctors, just return up to 2 doctors from all available
+                  selectedDoctors = doctors.sort(() => 0.5 - Math.random()).slice(0, 2);
+                } else {
+                  const randomCity = cities[Math.floor(Math.random() * cities.length)];
+                  selectedDoctors = doctorsByCity[randomCity].sort(() => 0.5 - Math.random()).slice(0, 2);
+                }
+              }
 
-              // Prepare the doctor information to display
               const doctorInfos = selectedDoctors.map(doctor => ({
                 doctorName: doctor.name,
                 degree: doctor.degree,
@@ -413,7 +424,7 @@ export async function POST(request: Request) {
 
               return {
                 doctors: doctorInfos,
-                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}`,
+                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}${city ? ` in ${city}` : ''}`,
               };
             },
           },
