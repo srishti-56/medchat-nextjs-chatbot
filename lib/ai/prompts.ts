@@ -38,9 +38,24 @@ export const updateDocumentPrompt = (
 ) =>
   type === 'text'
     ? `\
-Update the following patient file with the new information while preserving existing information.
-Use markdown formatting and maintain the same structure with sections.
+You are updating a patient file. Follow these rules:
+1. Keep the exact same markdown format with all sections
+2. Update only the sections that have new information
+3. Keep all existing information that isn't being updated
+4. If adding to a list (like symptoms), append to the existing list
+5. Only set Recommended Speciality if you have enough information to make a determination
+6. Format should be:
+# Patient File
+- Patient Name: [Name]
+- Age: [Age]
+- City: [City]
+- Chief Complaints: [Main issues reported]
+- Symptoms: [List of symptoms with duration]
+- Current Medications: [If any]
+- Other Notes: [Any other relevant information]
+- Recommended Speciality: [Only set if determined]
 
+Current content:
 ${currentContent}
 `
     : type === 'code'

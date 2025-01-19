@@ -172,8 +172,16 @@ export async function POST(request: Request) {
               if (kind === 'text') {
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
-                  system:
-                    'Create a simple empty PatientFile document with the following information: Patient Name, Age, City, Complaints, Symptoms, Current medications, Other , Recommended Doctor Speciality',
+                  system: `Create a patient file with the following format:
+# Patient File
+- Patient Name: [Name]
+- Age: [Age]
+- City: [City]
+- Chief Complaints: [Main issues reported]
+- Symptoms: [List of symptoms with duration]
+- Current Medications: [If any]
+- Other Notes: [Any other relevant information]
+- Recommended Speciality: [To be determined after analysis]`,
                   prompt: title,
                 });
 
