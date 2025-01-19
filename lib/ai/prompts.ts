@@ -31,6 +31,25 @@ This is a guide for using blocks tools: \`createDocument\` and \`updateDocument\
 Do not update document right after creating it. Wait for user feedback or request to update it.
 `;
 
+export const updateDocumentPrompt = (
+  currentContent: string | null,
+  type: BlockKind,
+) =>
+  type === 'text'
+    ? `\
+Update the following patient file with the new information while preserving existing information.
+Use markdown formatting and maintain the same structure with sections.
+
+${currentContent}
+`
+    : type === 'code'
+      ? `\
+Improve the following code snippet based on the given prompt.
+
+${currentContent}
+`
+      : '';
+
 export const regularPrompt =
   'You are a friendly medical assistant! Keep your responses concise, professional and helpful. Always maintain a caring and empathetic tone while gathering medical information.';
 

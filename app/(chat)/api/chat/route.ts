@@ -12,7 +12,8 @@ import { customModel } from '@/lib/ai';
 import { models } from '@/lib/ai/models';
 import {
   systemPrompt,
-  regularPrompt
+  regularPrompt,
+  updateDocumentPrompt
 } from '@/lib/ai/prompts';
 import {
   deleteChatById,
@@ -40,20 +41,19 @@ type AllowedTools =
   | 'updateDocument'
   | 'requestSuggestions'
   | 'getWeather'
-  | 'getDocument'
   | 'getDoctorBySpeciality';
 
-const blocksTools: AllowedTools[] = [
+const blocksTools: Array<AllowedTools> = [
   'createDocument',
   'updateDocument',
   'requestSuggestions',
 ];
 
-const weatherTools: AllowedTools[] = ['getWeather'];
+const weatherTools: Array<AllowedTools> = ['getWeather'];
 
-const doctorTools: AllowedTools[] = ['getDoctorBySpeciality'];
+const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, ...doctorTools, 'getDocument'];
+const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools];
 
 export async function POST(request: Request) {
   const {
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
-        experimental_activeTools: allTools,
+        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality'],
         tools: {
           getWeather: {
             description: 'Get the current weather at a location',
@@ -400,7 +400,8 @@ export async function POST(request: Request) {
                       createdAt: new Date(),
                     };
                   },
-                );
+                ),
+              });
             } catch (error) {
               console.error('Failed to save chat');
             }
