@@ -10,7 +10,7 @@ interface DebugWindowProps {
 }
 
 export function DebugWindow({ messages, className }: DebugWindowProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [prompts, setPrompts] = useState<any[]>([]);
 
