@@ -51,7 +51,7 @@ export default function Page() {
             Welcome!   
           </p>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-           Im Meddy 🐨 - connecting you to your nearest doctor! 
+            I&apos;m  Meddy 🐨 - connecting you to your nearest doctor! 
           </p>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             Create an account with your email and password to get started

@@ -18,7 +18,7 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
     {
       title: 'Meddy',
       label: 'helps you find a nearby doctor',
-      action: 'What brings you in today?',
+      action: 'Hello!,
     },
     // {
     //   title: 'Write code to',

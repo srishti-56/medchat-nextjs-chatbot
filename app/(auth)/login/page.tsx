@@ -48,7 +48,7 @@ export default function Page() {
            Welcome back! 
           </p>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-           Im Meddy 🐨 - connecting you to your nearest doctor! 
+           I&apos;m Meddy 🐨 - connecting you to your nearest doctor! 
           </p>
         </div>
         <AuthForm action={handleSubmit} defaultEmail={email}>
