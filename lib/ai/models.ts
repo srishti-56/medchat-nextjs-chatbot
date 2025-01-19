@@ -23,7 +23,7 @@ export const models: Array<Model> = [
   {
     id: 'ministral-3b-latest',
     label: 'Ministral-3b-latest',
-    apiIdentifier : 'open-mistral-7b',
+    apiIdentifier : 'mistral-large-latest',
     description: 'Not private: anonymized data sent to Mistral'
   }
 ] as const;
