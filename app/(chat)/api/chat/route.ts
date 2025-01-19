@@ -381,8 +381,38 @@ export async function POST(request: Request) {
                 };
               }
 
+              // Group doctors by city
+              const doctorsByCity = doctors.reduce<Record<string, typeof doctors>>((acc, doctor) => {
+                const city = doctor.city || 'Bangalore';
+                if (!acc[city]) {
+                  acc[city] = [];
+                }
+                acc[city].push(doctor);
+                return acc;
+              }, {});
+
+              // Select a random city with at least two doctors
+              const cities = Object.keys(doctorsByCity).filter(city => doctorsByCity[city].length >= 2);
+              if (cities.length === 0) {
+                return {
+                  error: 'Not enough doctors in the same city for selection',
+                  speciality,
+                };
+              }
+              const randomCity = cities[Math.floor(Math.random() * cities.length)];
+              const selectedDoctors = doctorsByCity[randomCity].sort(() => 0.5 - Math.random()).slice(0, 2);
+
+              // Prepare the doctor information to display
+              const doctorInfos = selectedDoctors.map(doctor => ({
+                doctorName: doctor.name,
+                degree: doctor.degree,
+                yearsOfExperience: doctor.yoe,
+                locationCity: `${doctor.location}, ${doctor.city}`,
+                speciality,
+              }));
+
               return {
-                doctors,
+                doctors: doctorInfos,
                 message: `Found ${doctors.length} doctor(s) specializing in ${speciality}`,
               };
             },
