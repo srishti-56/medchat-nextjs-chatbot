@@ -12,11 +12,28 @@ interface DebugWindowProps {
 export function DebugWindow({ messages, className }: DebugWindowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [prompts, setPrompts] = useState<any[]>([]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+  }, [messages, prompts]);
+
+  useEffect(() => {
+    // Extract debug data from messages
+    const debugData = messages
+      .filter(msg => msg.role === 'assistant' && msg.content && typeof msg.content === 'string' && msg.content.includes('"type":"prompts"'))
+      .map(msg => {
+        try {
+          return JSON.parse(msg.content);
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    
+    setPrompts(debugData);
   }, [messages]);
 
   return (
@@ -49,6 +66,20 @@ export function DebugWindow({ messages, className }: DebugWindowProps) {
           ref={scrollRef}
           className="flex-1 overflow-auto font-mono text-sm"
         >
+          {prompts.length > 0 && (
+            <div className="mb-6">
+              <div className="text-blue-500 font-semibold mb-2">Model Prompts:</div>
+              {prompts.map((prompt, index) => (
+                <div key={index} className="mb-4 p-2 border rounded">
+                  <div className="text-muted-foreground mb-2">System Prompt:</div>
+                  <pre className="whitespace-pre-wrap break-all text-xs mb-4">{prompt.system}</pre>
+                  <div className="text-muted-foreground mb-2">Messages:</div>
+                  <pre className="whitespace-pre-wrap break-all text-xs">{JSON.stringify(prompt.messages, null, 2)}</pre>
+                </div>
+              ))}
+            </div>
+          )}
+
           {messages.map((message, index) => (
             <div key={index} className="mb-4">
               <div className="text-muted-foreground">

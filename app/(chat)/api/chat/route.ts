@@ -104,6 +104,19 @@ export async function POST(request: Request) {
         content: userMessageId,
       });
 
+      // Add debug data for prompts
+      dataStream.writeData({
+        type: 'debug',
+        content: JSON.stringify({
+          type: 'prompts',
+          system: systemPrompt,
+          messages: coreMessages.map(msg => ({
+            role: msg.role,
+            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+          }))
+        })
+      });
+
       const result = streamText({
         model: customModel(model.apiIdentifier),
         system: systemPrompt,
@@ -160,7 +173,7 @@ export async function POST(request: Request) {
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system:
-                    'Create a structured patient file with sections for Patient Details, Chief Complaints, Symptoms, Current Treatments, and Medical History. Use markdown formatting.',
+                    'Create a simple empty PatientFile document with the following information: Patient Name, Age, Complaints, Symptoms, Current medications, Other , Recommended Doctor Speciality',
                   prompt: title,
                 });
 
@@ -201,7 +214,7 @@ export async function POST(request: Request) {
             },
           },
           updateDocument: {
-            description: 'Update a patient file or medical document with new information',
+            description: 'Update the patient file or medical document with new information',
             parameters: z.object({
               id: z.string().describe('The ID of the document to update'),
               description: z
