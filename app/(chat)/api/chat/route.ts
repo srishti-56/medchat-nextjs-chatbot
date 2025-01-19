@@ -11,9 +11,8 @@ import { auth } from '@/app/(auth)/auth';
 import { customModel } from '@/lib/ai';
 import { models } from '@/lib/ai/models';
 import {
-  codePrompt,
   systemPrompt,
-  updateDocumentPrompt,
+  regularPrompt
 } from '@/lib/ai/prompts';
 import {
   deleteChatById,
@@ -23,6 +22,7 @@ import {
   saveDocument,
   saveMessages,
   saveSuggestions,
+  getDoctorBySpeciality,
 } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
 import {
@@ -40,7 +40,8 @@ type AllowedTools =
   | 'updateDocument'
   | 'requestSuggestions'
   | 'getWeather'
-  | 'getDocument';
+  | 'getDocument'
+  | 'getDoctorBySpeciality';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -50,7 +51,9 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getDocument'];
+const doctorTools: AllowedTools[] = ['getDoctorBySpeciality'];
+
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, ...doctorTools, 'getDocument'];
 
 export async function POST(request: Request) {
   const {
@@ -124,8 +127,7 @@ export async function POST(request: Request) {
             },
           },
           createDocument: {
-            description:
-              'Create a document for a writing activity. This tool will call other functions that will generate the contents of the document based on the title and kind.',
+            description: 'Create a patient file or other medical document',
             parameters: z.object({
               title: z.string(),
               kind: z.enum(['text', 'code']),
@@ -158,7 +160,7 @@ export async function POST(request: Request) {
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system:
-                    'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+                    'Create a structured patient file with sections for Patient Details, Chief Complaints, Symptoms, Current Treatments, and Medical History. Use markdown formatting.',
                   prompt: title,
                 });
 
@@ -173,35 +175,6 @@ export async function POST(request: Request) {
                       type: 'text-delta',
                       content: textDelta,
                     });
-                  }
-                }
-
-                dataStream.writeData({ type: 'finish', content: '' });
-              } else if (kind === 'code') {
-                const { fullStream } = streamObject({
-                  model: customModel(model.apiIdentifier),
-                  system: codePrompt,
-                  prompt: title,
-                  schema: z.object({
-                    code: z.string(),
-                  }),
-                });
-
-                for await (const delta of fullStream) {
-                  const { type } = delta;
-
-                  if (type === 'object') {
-                    const { object } = delta;
-                    const { code } = object;
-
-                    if (code) {
-                      dataStream.writeData({
-                        type: 'code-delta',
-                        content: code ?? '',
-                      });
-
-                      draftText = code;
-                    }
                   }
                 }
 
@@ -223,12 +196,12 @@ export async function POST(request: Request) {
                 title,
                 kind,
                 content:
-                  'A document was created and is now visible to the user.',
+                  'A patient file was created and is now visible to the user.',
               };
             },
           },
           updateDocument: {
-            description: 'Update a document with the given description.',
+            description: 'Update a patient file or medical document with new information',
             parameters: z.object({
               id: z.string().describe('The ID of the document to update'),
               description: z
@@ -282,35 +255,6 @@ export async function POST(request: Request) {
                 }
 
                 dataStream.writeData({ type: 'finish', content: '' });
-              } else if (document.kind === 'code') {
-                const { fullStream } = streamObject({
-                  model: customModel(model.apiIdentifier),
-                  system: updateDocumentPrompt(currentContent, 'code'),
-                  prompt: description,
-                  schema: z.object({
-                    code: z.string(),
-                  }),
-                });
-
-                for await (const delta of fullStream) {
-                  const { type } = delta;
-
-                  if (type === 'object') {
-                    const { object } = delta;
-                    const { code } = object;
-
-                    if (code) {
-                      dataStream.writeData({
-                        type: 'code-delta',
-                        content: code ?? '',
-                      });
-
-                      draftText = code;
-                    }
-                  }
-                }
-
-                dataStream.writeData({ type: 'finish', content: '' });
               }
 
               if (session.user?.id) {
@@ -327,7 +271,7 @@ export async function POST(request: Request) {
                 id,
                 title: document.title,
                 kind: document.kind,
-                content: 'The document has been updated successfully.',
+                content: 'The patient file has been updated successfully.',
               };
             },
           },
@@ -409,27 +353,24 @@ export async function POST(request: Request) {
               };
             },
           },
-          getDocument: {
-            description: 'Get doctor by speciality when message contains "getDocumentTool"',
+          getDoctorBySpeciality: {
+            description: 'Query doctors database by medical specialty',
             parameters: z.object({
-              documentId: z.string().describe('The ID of the document to retrieve'),
+              speciality: z.string().describe('The medical specialty to search for'),
             }),
-            execute: async ({ documentId }) => {
-              const document = await getDocumentById({ id: documentId });
-
-              if (!document) {
+            execute: async ({ speciality }) => {
+              const doctors = await getDoctorBySpeciality(speciality);
+              
+              if (!doctors || doctors.length === 0) {
                 return {
-                  error: 'Document not found',
-                  id: documentId,
+                  error: 'No doctors found for this specialty',
+                  speciality,
                 };
               }
 
               return {
-                id: document.id,
-                title: document.title,
-                content: document.content,
-                kind: document.kind,
-                createdAt: document.createdAt,
+                doctors,
+                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}`,
               };
             },
           },
@@ -459,8 +400,7 @@ export async function POST(request: Request) {
                       createdAt: new Date(),
                     };
                   },
-                ),
-              });
+                );
             } catch (error) {
               console.error('Failed to save chat');
             }
