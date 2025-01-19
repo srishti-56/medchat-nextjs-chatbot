@@ -415,16 +415,18 @@ export async function POST(request: Request) {
               }
 
               const doctorInfos = selectedDoctors.map(doctor => ({
-                doctorName: doctor.name,
+                name: doctor.name,
                 degree: doctor.degree,
-                yearsOfExperience: doctor.yoe,
-                locationCity: `${doctor.location}, ${doctor.city}`,
+                yoe: doctor.yoe,
+                location: doctor.location,
+                city: doctor.city,
                 speciality,
+                consultFee: doctor.consultFee
               }));
 
               return {
-                doctors: doctorInfos,
                 message: `Found ${doctors.length} doctor(s) specializing in ${speciality}${city ? ` in ${city}` : ''}`,
+                doctorData: doctorInfos
               };
             },
           },
