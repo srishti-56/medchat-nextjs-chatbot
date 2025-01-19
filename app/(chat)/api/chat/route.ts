@@ -420,12 +420,12 @@ export async function POST(request: Request) {
                 yoe: doctor.yoe,
                 location: doctor.location,
                 city: doctor.city,
-                speciality,
+                speciality: speciality,
                 consultFee: doctor.consultFee
               }));
 
               return {
-                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}${city ? ` in ${city}` : ''}`,
+                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}: ''}`,
                 doctorData: doctorInfos
               };
             },

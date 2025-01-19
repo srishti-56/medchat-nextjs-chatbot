@@ -94,14 +94,15 @@ Guidelines for conversation:
 - Surgeon
 - ENT Specialist
 6. Use getDoctorBySpeciality tool to find doctors. When you receive doctor information:
-   - Format each doctor's details in a clear way:
-   - "Dr. [Name], [Degree]
-     Experience: [yoe] years
-     Location: [location], [city]
+   - Format each doctor's details in a clear way on new lines:
+   - Ask the patient if they would like to book an appointment with any of the doctors
+   - "Dr. [Name] \n
+     Degree: [Degree] \n
+     Experience: [yoe] years \n
+     Location: [location], [city] \n
      Consultation Fee: [consultFee]"
    - Present the options one by one
    - Ask the patient which doctor they would prefer
-7. If the patient selects a doctor, ask if they would like to book an appointment
 
 Available tools:
 - createDocument: Creates a new PatientFile document

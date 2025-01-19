@@ -40,7 +40,16 @@ export async function getDoctorBySpeciality(speciality: string) {
       .where(like(doctor.speciality, `%${speciality}%`))
       .execute();
 
-    return doctorResults;
+    return doctorResults.map(doctor => ({
+      ...doctor,
+      name: doctor.name?.trim() || '',
+      degree: doctor.degree?.trim() || '',
+      yoe: doctor.yoe?.trim() || '',
+      location: doctor.location?.trim() || '',
+      city: doctor.city?.trim() || '',
+      speciality: doctor.speciality?.trim() || '',
+      consultFee: doctor.consultFee?.trim() || '',
+    }));
   }
   catch (error){
     console.error('Failed to get doctors from database');
