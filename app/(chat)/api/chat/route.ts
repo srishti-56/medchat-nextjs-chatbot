@@ -173,7 +173,7 @@ export async function POST(request: Request) {
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system:
-                    'Create a simple empty PatientFile document with the following information: Patient Name, Age, Complaints, Symptoms, Current medications, Other , Recommended Doctor Speciality',
+                    'Create a simple empty PatientFile document with the following information: Patient Name, Age, City, Complaints, Symptoms, Current medications, Other , Recommended Doctor Speciality',
                   prompt: title,
                 });
 
