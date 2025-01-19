@@ -14,6 +14,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useBlockSelector } from '@/hooks/use-block';
+import { DebugWindow } from './debug-window';
 
 export function Chat({
   id,
@@ -44,6 +45,7 @@ export function Chat({
     id,
     body: { id, modelId: selectedModelId },
     initialMessages,
+    maxSteps: 5,
     experimental_throttle: 100,
     onFinish: () => {
       mutate('/api/history');
@@ -59,7 +61,7 @@ export function Chat({
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
   return (
-    <>
+    <div className="relative flex-1 flex flex-col h-full">
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           chatId={id}
@@ -114,6 +116,11 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
       />
-    </>
+
+      <DebugWindow 
+        messages={messages} 
+        className="z-50"
+      />
+    </div>
   );
 }

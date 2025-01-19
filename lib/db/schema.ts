@@ -113,3 +113,24 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const doctor = pgTable(
+  'Doctor',
+  {
+    id: uuid('id').notNull().defaultRandom(),
+    name: text('name'),
+    degree: text('degree'),
+    dpScore: text('dpScore'),
+    npvValue: text('npvValue'),
+    location: text('location'),
+    city: text('city'),
+    consultFee: text('consultFee'),
+    yoe: text('yoe'),
+    speciality: text('speciality'),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+  }),
+);
+
+export type Doctor = InferSelectModel<typeof doctor>;

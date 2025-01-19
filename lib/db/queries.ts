@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, desc, eq, gt, gte } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, like } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -15,6 +15,8 @@ import {
   type Message,
   message,
   vote,
+  doctor,
+  type Doctor
 } from './schema';
 import { BlockKind } from '@/components/block';
 
@@ -25,6 +27,26 @@ import { BlockKind } from '@/components/block';
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
+
+
+// Query the doctors table for the specialty column
+export async function getDoctorBySpeciality(speciality: string) {
+  try{
+    console.log('Finding doctors by:', speciality);
+
+    const doctorResults = await db
+      .select()
+      .from(doctor)
+      .where(like(doctor.speciality, `%${speciality}%`))
+      .execute();
+
+    return doctorResults;
+  }
+  catch (error){
+    console.error('Failed to get doctors from database');
+    throw error;
+  }
+}
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {

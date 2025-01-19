@@ -3,7 +3,7 @@ import {
   convertToCoreMessages,
   createDataStreamResponse,
   streamObject,
-  streamText,
+  streamText
 } from 'ai';
 import { z } from 'zod';
 
@@ -410,7 +410,7 @@ export async function POST(request: Request) {
             },
           },
           getDocument: {
-            description: 'Get a document by its ID when the message contains "getDocumentTool"',
+            description: 'Get doctor by speciality when message contains "getDocumentTool"',
             parameters: z.object({
               documentId: z.string().describe('The ID of the document to retrieve'),
             }),
