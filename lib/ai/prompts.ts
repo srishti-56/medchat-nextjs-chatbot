@@ -65,6 +65,7 @@ When creating the PatientFile for the first time, use this format:
 # Patient File
 - Patient Name: [Name]
 - Age: 
+- City:
 - Chief Complaints: 
 - Symptoms:
 - Current Medications: 
