@@ -192,15 +192,6 @@ function PureBlock({
               createdAt: new Date(),
             };
 
-            // Wait a short delay to ensure messages are synced
-            setTimeout(() => {
-              setBlock((currentBlock) => ({
-                ...currentBlock,
-                isVisible: false,
-                status: 'idle'
-              }));
-            }, 500);
-
             return [...currentDocuments, newDocument];
           }
           return currentDocuments;
@@ -208,18 +199,8 @@ function PureBlock({
         { revalidate: false },
       );
     },
-    [block, mutate, setBlock],
+    [block, mutate],
   );
-
-  useEffect(() => {
-    // When block status changes to idle and we have new messages, close the block
-    if (block.status === 'idle' && messages.length > 0 && !isLoading) {
-      setBlock((currentBlock) => ({
-        ...currentBlock,
-        isVisible: false
-      }));
-    }
-  }, [block.status, messages.length, isLoading, setBlock]);
 
   const debouncedHandleContentChange = useDebounceCallback(
     handleContentChange,
