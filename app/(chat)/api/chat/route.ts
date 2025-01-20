@@ -41,12 +41,14 @@ type AllowedTools =
   | 'updateDocument'
   | 'requestSuggestions'
   | 'getWeather'
-  | 'getDoctorBySpeciality';
+  | 'getDoctorBySpeciality'
+  | 'validatePatientFile';
 
 const blocksTools: Array<AllowedTools> = [
   'createDocument',
   'updateDocument',
   'requestSuggestions',
+  'validatePatientFile'
 ];
 
 const weatherTools: Array<AllowedTools> = ['getWeather'];
@@ -122,7 +124,7 @@ export async function POST(request: Request) {
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
-        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality'],
+        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality', 'validatePatientFile'],
         tools: {
           getWeather: {
             description: 'Get the current weather at a location',
@@ -174,13 +176,13 @@ export async function POST(request: Request) {
                   model: customModel(model.apiIdentifier),
                   system: `Create a patient file with the following format:
 # Patient File
-- Patient Name: [Name]
-- Age: [Age]
-- City: [City]
-- Chief Complaints: [Main issues reported]
-- Symptoms: [List of symptoms with duration]
-- Current Medications: [If any]
-- Other Notes: [Any other relevant information]
+- Patient Name: [Name if provided] \n
+- Age: [Age if provided] \n
+- City: [City if provided] \n
+- Chief Complaints: [Main issues reported if provided] \n
+- Symptoms: [List of symptoms with duration if provided] \n
+- Current Medications: [If any provided] \n
+- Other Notes: [Any other relevant information if provided] \n
 - Recommended Speciality: [To be determined after analysis]`,
                   prompt: title,
                 });
@@ -435,6 +437,76 @@ export async function POST(request: Request) {
               return {
                 message: `Found ${doctors.length} doctor(s) specializing in ${speciality}: ''}`,
                 doctorData: doctorInfos
+              };
+            },
+          },
+          validatePatientFile: {
+            description: 'Validate patient file content against chat history',
+            parameters: z.object({
+              documentId: z.string().describe('The ID of the document to validate'),
+              messageNumber: z.number().describe('Current message number in the chat'),
+            }),
+            execute: async ({ documentId, messageNumber }) => {
+              const document = await getDocumentById({ id: documentId });
+              
+              if (!document) {
+                return {
+                  error: 'Document not found',
+                  documentId,
+                };
+              }
+
+              // Extract facts from chat history
+              const facts = coreMessages.map((msg, idx) => {
+                if (msg.role === 'user') {
+                  return {
+                    messageNum: idx + 1,
+                    content: msg.content
+                  };
+                }
+                return null;
+              }).filter(Boolean);
+
+              const { fullStream } = streamText({
+                model: customModel(model.apiIdentifier),
+                system: `You are validating a patient file against chat history.
+1. Check if all information in the file is supported by chat messages
+2. Each fact should have a reference [N] to the chat message number it came from
+3. Information without a chat message source should be removed
+4. Keep the exact same format but add references
+5. If symptoms or complaints are mentioned multiple times, include all references`,
+                prompt: JSON.stringify({
+                  currentContent: document.content,
+                  facts: facts,
+                  messageNumber: messageNumber
+                }),
+              });
+
+              let draftText = '';
+              for await (const delta of fullStream) {
+                const { type } = delta;
+                if (type === 'text-delta') {
+                  const { textDelta } = delta;
+                  draftText += textDelta;
+                  dataStream.writeData({
+                    type: 'text-delta',
+                    content: textDelta,
+                  });
+                }
+              }
+
+              if (session.user?.id) {
+                await saveDocument({
+                  id: documentId,
+                  title: document.title,
+                  content: draftText,
+                  kind: document.kind,
+                  userId: session.user.id,
+                });
+              }
+
+              return {
+                message: 'Patient file validated and updated with references',
               };
             },
           },
