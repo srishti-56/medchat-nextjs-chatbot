@@ -116,11 +116,6 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
       />
-
-      <DebugWindow 
-        messages={messages} 
-        className="z-50"
-      />
     </div>
   );
 }
