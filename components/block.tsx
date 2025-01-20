@@ -465,14 +465,14 @@ function PureBlock({
                 'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full pb-40 items-center',
                 {
                   'py-2 px-2': block.kind === 'code',
-                  'py-8 md:p-20 px-4': block.kind === 'text',
+                  'py-4 md:p-12 px-4': block.kind === 'text',
                 },
               )}
             >
               <div
                 className={cn('flex flex-row', {
                   '': block.kind === 'code',
-                  'mx-auto max-w-[600px]': block.kind === 'text',
+                  'mx-auto max-w-[500px]': block.kind === 'text',
                 })}
               >
                 {isDocumentsFetching && !block.content ? (
