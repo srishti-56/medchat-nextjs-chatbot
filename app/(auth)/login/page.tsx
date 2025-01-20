@@ -44,10 +44,10 @@ export default function Page() {
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
           <h3 className="text-xl font-semibold dark:text-zinc-50">Sign In</h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
+          <p className="text-md text-gray-500 dark:text-zinc-400">
            Welcome back! 
           </p>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
+          <p className="text-md text-gray-500 dark:text-zinc-400">
            I&apos;m Meddy 🐨 - connecting you to your nearest doctor! 
           </p>
         </div>
