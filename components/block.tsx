@@ -192,6 +192,12 @@ function PureBlock({
               createdAt: new Date(),
             };
 
+            // Close the block after successful update
+            setBlock((currentBlock) => ({
+              ...currentBlock,
+              isVisible: false,
+            }));
+
             return [...currentDocuments, newDocument];
           }
           return currentDocuments;
@@ -199,7 +205,7 @@ function PureBlock({
         { revalidate: false },
       );
     },
-    [block, mutate],
+    [block, mutate, setBlock],
   );
 
   const debouncedHandleContentChange = useDebounceCallback(
