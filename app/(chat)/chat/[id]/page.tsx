@@ -8,36 +8,43 @@ import { getChatById, getMessagesByChatId, getUser } from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 
-export default async function Page({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function Page({ params }: { params: { id: string } }) {
   const session = await auth();
 
   if (!session?.user?.id) {
-    return null;
+    notFound();
   }
 
-  const [chat, messagesFromDb] = await Promise.all([
-    getChatById({ id: params.id }),
-    getMessagesByChatId({ id: params.id }),
-  ]);
+  const chat = await getChatById({ id: params.id });
 
   if (!chat) {
-    return null;
+    notFound();
   }
 
-  // Get user info
-  const [user] = await getUser(session.user.email || '');
+  if (chat.visibility === 'private') {
+    if (!session || !session.user) {
+      notFound();
+    }
+
+    if (session.user.id !== chat.userId) {
+      notFound();
+    }
+  }
+
+  const [messagesFromDb, users] = await Promise.all([
+    getMessagesByChatId({ id: params.id }),
+    getUser(session.user.email || '')
+  ]);
+
+  const user = users[0];
   const userInfo = user ? {
     name: user.name,
     age: user.age
   } : undefined;
 
-  const selectedModelId = DEFAULT_MODEL_NAME;
-  const selectedVisibilityType = chat.visibility;
-  const isReadonly = chat.userId !== session.user.id;
+  const cookieStore = await cookies();
+  const modelIdFromCookie = cookieStore.get('model-id')?.value;
+  const selectedModelId = models.find((model) => model.id === modelIdFromCookie)?.id || DEFAULT_MODEL_NAME;
 
   return (
     <div className="flex-1 relative flex">
@@ -46,8 +53,8 @@ export default async function Page({
           id={chat.id}
           initialMessages={convertToUIMessages(messagesFromDb)}
           selectedModelId={selectedModelId}
-          selectedVisibilityType={selectedVisibilityType}
-          isReadonly={isReadonly}
+          selectedVisibilityType={chat.visibility}
+          isReadonly={session.user.id !== chat.userId}
           userId={session.user.id}
           userInfo={userInfo}
         />
