@@ -176,16 +176,7 @@ export async function POST(request: Request) {
               if (kind === 'text') {
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
-                  system: `Create a patient file with the following format:
-# Patient File
-- Patient Name: [Name if provided] \n
-- Age: [Age if provided] \n
-- City: [City if provided] \n
-- Chief Complaints: [Main issues reported if provided] \n
-- Symptoms: [List of symptoms with duration if provided] \n
-- Current Medications: [If any provided] \n
-- Other Notes: [Any other relevant information if provided] \n
-- Recommended Speciality: [To be determined after analysis]`,
+                  system: `Create a patient file if there's enough information in the chat.`,
                   prompt: title,
                 });
 

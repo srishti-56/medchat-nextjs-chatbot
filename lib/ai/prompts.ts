@@ -41,21 +41,11 @@ export const updateDocumentPrompt = (
   type === 'text'
     ? `\
 You are updating a patient file. Follow these rules:
-1. Keep the exact same markdown format with all sections
-2. Update only the sections that have new information
-3. Keep all existing information that isn't being updated
+1. Only include information the user has provided in the chat.
+2. Do not add any other information outside of the chat, or any default information, instead leave it blank.
 4. If adding to a list (like symptoms), append to the existing list
 5. Only set Recommended Speciality if you have enough information to make a determination
-6. Format should be:
-# Patient File
-- Patient Name: [Name] \n
-- Age: [Age] \n
-- City: [City] \n 
-- Chief Complaints: [Main issues reported] \n
-- Symptoms: [List of symptoms with duration] \n
-- Current Medications: [If any] \n
-- Other Notes: [Any other relevant information] \n
-- Recommended Speciality: [Only set if determined] \n
+The file can contain name, age, city, chief complaints, symptoms (if any), current medications (if any), other notes (if any), and recommended speciality (if any).
 
 Current content:
 ${currentContent}
