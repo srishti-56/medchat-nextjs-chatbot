@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.2] - 2024-03-21
+## [1.0.2] - 2025-02-08
 
 ### Added
 - User info retrieval on login and chat initialization
@@ -27,3 +27,6 @@ ADD COLUMN "age" VARCHAR(3);
 ```
 ```
 
+## [1.0.3] - 2025-02-08
+
+Add HUGGINGFACE_API_KEY in environment variables

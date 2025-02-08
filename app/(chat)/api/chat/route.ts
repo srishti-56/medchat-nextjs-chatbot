@@ -5,6 +5,8 @@ import {
   streamObject,
   streamText
 } from 'ai';
+import { HfInference } from '@huggingface/inference';
+import { StreamingTextResponse } from 'ai/huggingface';
 import { z } from 'zod';
 
 import { auth } from '@/app/(auth)/auth';
@@ -60,6 +62,9 @@ const weatherTools: Array<AllowedTools> = ['getWeather'];
 const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality', 'diagnoseIssue'];
 
 const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools, 'updateUserInfo'];
+
+// Create a new Hugging Face Inference instance
+const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
 export async function POST(request: Request) {
   const {
@@ -566,7 +571,7 @@ export async function POST(request: Request) {
             },
           },
           diagnoseIssue: {
-            description: 'Analyze symptoms and provide a preliminary but brief diagnosis in a few sentences',
+            description: 'Analyze symptoms and provide a preliminary but brief diagnosis.',
             parameters: z.object({
               symptoms: z.array(z.string()).describe('List of symptoms reported by the patient'),
               duration: z.string().optional().describe('Duration of symptoms'),
@@ -577,37 +582,83 @@ export async function POST(request: Request) {
               currentMedications: z.array(z.string()).optional().describe('Current medications'),
             }),
             execute: async ({ symptoms, duration, severity, age, gender, medicalHistory, currentMedications }) => {
-              const { fullStream } = streamText({
-                model: customModel(model.apiIdentifier),
-                system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
-                identify the most likely conditions. Keep it jargon-free, preferring common terms and phrases and even analogies. Only provide medical-jargon details if the user asks for it. 
-                Add a sentence - 'This is not a definitive diagnosis and please consult with a healthcare professional for proper evaluation' at the end.`,
-                prompt: JSON.stringify({
-                  symptoms,
-                  duration,
-                  severity,
-                  age,
-                  gender,
-                  medicalHistory,
-                  currentMedications
-                }),
-              });
+              const prompt = `Please analyze these patient symptoms and provide a preliminary medical analysis:
+              
+Patient Information:
+- Age: ${age || 'Not provided'}
+- Gender: ${gender || 'Not provided'}
+- Symptoms: ${symptoms.join(', ')}
+- Duration: ${duration || 'Not specified'}
+- Severity: ${severity || 'Not specified'}
+${medicalHistory?.length ? `- Medical History: ${medicalHistory.join(', ')}` : ''}
+${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}
 
-              let analysis = '';
-              for await (const delta of fullStream) {
-                if (delta.type === 'text-delta') {
-                  analysis += delta.textDelta;
+Please provide a preliminary analysis of potential conditions based on these symptoms.`;
+
+              try {
+                // Use text generation without streaming
+                const response = await Hf.textGeneration({
+                  model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
+                  inputs: `<|prompter|>${prompt}<|endoftext|><|assistant|>`,
+                  parameters: {
+                    max_new_tokens: 500,
+                    typical_p: 0.2,
+                    repetition_penalty: 1,
+                    truncate: 1000,
+                    return_full_text: false
+                  }
+                });
+
+                // Write the response text in chunks to simulate streaming
+                const chunkSize = 10;
+                const text = response.generated_text;
+                for (let i = 0; i < text.length; i += chunkSize) {
+                  const chunk = text.slice(i, i + chunkSize);
                   dataStream.writeData({
                     type: 'text-delta',
-                    content: delta.textDelta,
+                    content: chunk
                   });
                 }
-              }
 
-              return {
-                analysis,
-                disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
-              };
+                return {
+                  analysis: text,
+                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
+                };
+              } catch (error) {
+                console.error('Error calling HuggingFace model:', error);
+                // Fallback to default model if HuggingFace fails
+                const { fullStream } = streamText({
+                  model: customModel(model.apiIdentifier),
+                  system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
+                identify the most likely conditions and be empathetic and caring. Keep it jargon-free, preferring common terms and phrases and even analogies. Only provide medical-jargon details if the user asks for it. 
+                Add a sentence - 'This is not a definitive diagnosis and please consult with a healthcare professional for proper evaluation' at the end.`,
+                  prompt: JSON.stringify({
+                    symptoms,
+                    duration,
+                    severity,
+                    age,
+                    gender,
+                    medicalHistory,
+                    currentMedications
+                  }),
+                });
+
+                let analysis = '';
+                for await (const delta of fullStream) {
+                  if (delta.type === 'text-delta') {
+                    analysis += delta.textDelta;
+                    dataStream.writeData({
+                      type: 'text-delta',
+                      content: delta.textDelta,
+                    });
+                  }
+                }
+
+                return {
+                  analysis,
+                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
+                };
+              }
             },
           },
         },
