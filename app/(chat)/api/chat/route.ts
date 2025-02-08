@@ -6,7 +6,6 @@ import {
   streamText
 } from 'ai';
 import { HfInference } from '@huggingface/inference';
-import { StreamingTextResponse } from 'ai/huggingface';
 import { z } from 'zod';
 
 import { auth } from '@/app/(auth)/auth';
