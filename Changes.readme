@@ -1,0 +1,29 @@
+# Changelog
+
+## [1.0.2] - 2024-03-21
+
+### Added
+- User info retrieval on login and chat initialization
+- Integration of user details with chat system
+
+### Implementation Changes
+1. Added user info retrieval after login
+2. Modified chat component to include user details in requests
+3. Updated chat API to handle user information
+
+## [1.0.1] - 2024-03-21
+
+### Added
+- New user profile fields:
+  - `name`: VARCHAR(100) - Store user's name
+  - `age`: VARCHAR(3) - Store user's age
+
+You might need to manually apply the changes, use the following SQL in the console:
+
+```sql
+ALTER TABLE "User"
+ADD COLUMN "name" VARCHAR(100),
+ADD COLUMN "age" VARCHAR(3);
+```
+```
+

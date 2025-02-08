@@ -2,7 +2,7 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
@@ -22,14 +22,17 @@ export function Chat({
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
+  userId,
 }: {
   id: string;
   initialMessages: Array<Message>;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
+  userId: string;
 }) {
   const { mutate } = useSWRConfig();
+  const { data: userInfo } = useSWR(`/api/user/${userId}`, fetcher);
 
   const {
     messages,
@@ -43,7 +46,14 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, modelId: selectedModelId },
+    body: { 
+      id, 
+      modelId: selectedModelId,
+      userInfo: userInfo ? {
+        name: userInfo.name,
+        age: userInfo.age
+      } : undefined
+    },
     initialMessages,
     maxSteps: 5,
     experimental_throttle: 100,

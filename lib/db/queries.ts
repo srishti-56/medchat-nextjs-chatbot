@@ -359,3 +359,21 @@ export async function updateChatVisiblityById({
     throw error;
   }
 }
+
+export async function getUserById(id: string) {
+  try {
+    const [selectedUser] = await db
+      .select({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        age: user.age,
+      })
+      .from(user)
+      .where(eq(user.id, id));
+    return selectedUser;
+  } catch (error) {
+    console.error('Failed to get user by id from database');
+    throw error;
+  }
+}
