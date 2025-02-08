@@ -61,14 +61,40 @@ const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality', 'diagnoseIssu
 
 const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools, 'updateUserInfo'];
 
-const GRADIO_URL = "https://segadeds-medical-diagnosis.hf.space/run/predict";
+// Gradio endpoint (commented out but kept for reference)
+// const GRADIO_URL = "https://segadeds-medical-diagnosis.hf.space/run/predict";
+
+// MedLLaMA endpoint
+const MEDLLAMA_URL = "https://api-inference.huggingface.co/models/ProbeMedicalYonseiMAILab/medllama3-v20";
 
 async function queryMedicalDiagnosis(text: string) {
+  // Previous Gradio implementation
+  /*
   const response = await fetch(GRADIO_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       data: [text]
+    })
+  });
+  */
+
+  // Current MedLLaMA implementation
+  const response = await fetch(MEDLLAMA_URL, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`
+    },
+    body: JSON.stringify({
+      inputs: text,
+      parameters: {
+        max_new_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+        do_sample: true,
+        return_full_text: false
+      }
     })
   });
   
@@ -595,7 +621,9 @@ export async function POST(request: Request) {
               currentMedications: z.array(z.string()).optional().describe('Current medications'),
             }),
             execute: async ({ symptoms, duration, severity, age, gender, medicalHistory, currentMedications }) => {
-              const prompt = `
+              // Current MedLLaMA prompt format
+              const prompt = `[INST] You are a medical AI assistant. Please analyze these patient symptoms and provide a preliminary diagnosis:
+
 Patient Information:
 - Age: ${age || 'Not provided'}
 - Gender: ${gender || 'Not provided'}
@@ -605,18 +633,23 @@ Patient Information:
 ${medicalHistory?.length ? `- Medical History: ${medicalHistory.join(', ')}` : ''}
 ${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}
 
-Based on the above information, please provide a preliminary analysis of potential conditions.`;
+Based on the above information, please provide:
+1. A brief analysis of potential conditions (list out)
+2. Any immediate recommendations
+3. Level of urgency (if any)
+
+Please be clear and empathetic in your response. [/INST]`;
 
               try {
-                // Call the Gradio endpoint
+                // Current MedLLaMA implementation
                 const result = await queryMedicalDiagnosis(prompt);
                 
-                if (!result.data) {
-                  throw new Error('No data in response');
+                if (!Array.isArray(result) || result.length === 0) {
+                  throw new Error('Invalid response format');
                 }
 
-                // Get the diagnosis text from the result
-                const text = result.data[0];
+                // Get the generated text
+                const text = result[0].generated_text;
 
                 // Write the response text in chunks to simulate streaming
                 const chunkSize = 10;
@@ -636,8 +669,8 @@ Based on the above information, please provide a preliminary analysis of potenti
                   disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
                 };
               } catch (error) {
-                console.error('Error calling Gradio endpoint:', error);
-                // Fallback to default model if Gradio fails
+                console.error('Error calling MedLLaMA model:', error);
+                // Fallback to default model if MedLLaMA fails
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
