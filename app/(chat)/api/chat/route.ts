@@ -25,8 +25,7 @@ import {
   saveSuggestions,
   getDoctorBySpeciality,
   updateUserInfo,
-  getMessagesByChatId,
-  getUser
+  getUserById
 } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
 import {
@@ -89,6 +88,16 @@ export async function POST(request: Request) {
     return new Response('No user message found', { status: 400 });
   }
 
+  // Get user info if this is the first message
+  if (coreMessages.length === 1) {
+    const userInfo = await getUserById(session.user.id);
+    if (userInfo?.name || userInfo?.age) {
+      // Append user info to the first message
+      const userInfoStr = `\n\nUser Info:\n${userInfo.name ? `Name: ${userInfo.name}\n` : ''}${userInfo.age ? `Age: ${userInfo.age}` : ''}`;
+      userMessage.content = `${userMessage.content}${userInfoStr}`;
+    }
+  }
+
   const chat = await getChatById({ id });
 
   if (!chat) {
@@ -104,12 +113,6 @@ export async function POST(request: Request) {
     ],
   });
 
-  const [user] = await getUser(session.user.email || '');
-  const userInfo = user ? {
-    name: user.name,
-    age: user.age
-  } : undefined;
-
   return createDataStreamResponse({
     execute: (dataStream) => {
       dataStream.writeData({
@@ -117,21 +120,18 @@ export async function POST(request: Request) {
         content: userMessageId,
       });
 
-      // Only write debug data in development
-      if (process.env.NODE_ENV === 'development') {
-        dataStream.writeData({
-          type: 'debug',
-          content: JSON.stringify({
-            type: 'prompts',
-            system: systemPrompt,
-            messages: coreMessages.map(msg => ({
-              role: msg.role,
-              content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-            })),
-            userInfo: userInfo
-          })
-        });
-      }
+      // Add debug data for prompts
+      dataStream.writeData({
+        type: 'debug',
+        content: JSON.stringify({
+          type: 'prompts',
+          system: systemPrompt,
+          messages: coreMessages.map(msg => ({
+            role: msg.role,
+            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+          }))
+        })
+      });
 
       const result = streamText({
         model: customModel(model.apiIdentifier),
@@ -614,10 +614,11 @@ export async function POST(request: Request) {
         onFinish: async ({ response }) => {
           if (session.user?.id) {
             try {
-              const cleanedMessages = sanitizeResponseMessages(response.messages);
+              const responseMessagesWithoutIncompleteToolCalls =
+                sanitizeResponseMessages(response.messages);
 
               await saveMessages({
-                messages: cleanedMessages.map(
+                messages: responseMessagesWithoutIncompleteToolCalls.map(
                   (message) => {
                     const messageId = generateUUID();
 
