@@ -566,7 +566,7 @@ export async function POST(request: Request) {
             },
           },
           diagnoseIssue: {
-            description: 'Analyze symptoms and provide a preliminary diagnosis',
+            description: 'Analyze symptoms and provide a preliminary but brief diagnosis in a few sentences',
             parameters: z.object({
               symptoms: z.array(z.string()).describe('List of symptoms reported by the patient'),
               duration: z.string().optional().describe('Duration of symptoms'),
@@ -580,8 +580,8 @@ export async function POST(request: Request) {
               const { fullStream } = streamText({
                 model: customModel(model.apiIdentifier),
                 system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
-                provide a preliminary analysis of potential conditions. Be clear that this is not a definitive diagnosis 
-                and the patient should consult with a healthcare professional for proper evaluation.`,
+                identify the most likely conditions. Keep it jargon-free, preferring common terms and phrases and even analogies. Only provide medical-jargon details if the user asks for it. 
+                Add a sentence - 'This is not a definitive diagnosis and please consult with a healthcare professional for proper evaluation' at the end.`,
                 prompt: JSON.stringify({
                   symptoms,
                   duration,
