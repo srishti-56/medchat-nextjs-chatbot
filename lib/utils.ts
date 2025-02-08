@@ -126,43 +126,26 @@ export function convertToUIMessages(
   }, []);
 }
 
-export function sanitizeResponseMessages(
-  messages: Array<CoreToolMessage | CoreAssistantMessage>,
-): Array<CoreToolMessage | CoreAssistantMessage> {
-  const toolResultIds: Array<string> = [];
-
-  for (const message of messages) {
-    if (message.role === 'tool') {
-      for (const content of message.content) {
-        if (content.type === 'tool-result') {
-          toolResultIds.push(content.toolCallId);
-        }
-      }
+export function sanitizeResponseMessages(messages: Array<any>) {
+  return messages.map((message) => {
+    if (typeof message.content === 'string') {
+      // Clean up tool call outputs that appear as JSON
+      const cleanedContent = message.content.replace(/\{[\s\S]*?"content":[\s\S]*?\}/g, '');
+      // Remove any leftover empty lines
+      const finalContent = cleanedContent.replace(/^\s*[\r\n]/gm, '');
+      return {
+        ...message,
+        content: finalContent,
+      };
     }
-  }
-
-  const messagesBySanitizedContent = messages.map((message) => {
-    if (message.role !== 'assistant') return message;
-
-    if (typeof message.content === 'string') return message;
-
-    const sanitizedContent = message.content.filter((content) =>
-      content.type === 'tool-call'
-        ? toolResultIds.includes(content.toolCallId)
-        : content.type === 'text'
-          ? content.text.length > 0
-          : true,
-    );
-
-    return {
-      ...message,
-      content: sanitizedContent,
-    };
+    return message;
+  }).filter(message => {
+    // Filter out empty messages or messages that only contain whitespace
+    if (typeof message.content === 'string') {
+      return message.content.trim().length > 0;
+    }
+    return true;
   });
-
-  return messagesBySanitizedContent.filter(
-    (message) => message.content.length > 0,
-  );
 }
 
 export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {

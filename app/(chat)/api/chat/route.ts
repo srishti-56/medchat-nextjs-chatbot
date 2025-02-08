@@ -24,7 +24,9 @@ import {
   saveMessages,
   saveSuggestions,
   getDoctorBySpeciality,
-  updateUserInfo
+  updateUserInfo,
+  getMessagesByChatId,
+  getUser
 } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
 import {
@@ -102,6 +104,12 @@ export async function POST(request: Request) {
     ],
   });
 
+  const [user] = await getUser(session.user.email || '');
+  const userInfo = user ? {
+    name: user.name,
+    age: user.age
+  } : undefined;
+
   return createDataStreamResponse({
     execute: (dataStream) => {
       dataStream.writeData({
@@ -109,18 +117,21 @@ export async function POST(request: Request) {
         content: userMessageId,
       });
 
-      // Add debug data for prompts
-      dataStream.writeData({
-        type: 'debug',
-        content: JSON.stringify({
-          type: 'prompts',
-          system: systemPrompt,
-          messages: coreMessages.map(msg => ({
-            role: msg.role,
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-          }))
-        })
-      });
+      // Only write debug data in development
+      if (process.env.NODE_ENV === 'development') {
+        dataStream.writeData({
+          type: 'debug',
+          content: JSON.stringify({
+            type: 'prompts',
+            system: systemPrompt,
+            messages: coreMessages.map(msg => ({
+              role: msg.role,
+              content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+            })),
+            userInfo: userInfo
+          })
+        });
+      }
 
       const result = streamText({
         model: customModel(model.apiIdentifier),
@@ -603,11 +614,10 @@ export async function POST(request: Request) {
         onFinish: async ({ response }) => {
           if (session.user?.id) {
             try {
-              const responseMessagesWithoutIncompleteToolCalls =
-                sanitizeResponseMessages(response.messages);
+              const cleanedMessages = sanitizeResponseMessages(response.messages);
 
               await saveMessages({
-                messages: responseMessagesWithoutIncompleteToolCalls.map(
+                messages: cleanedMessages.map(
                   (message) => {
                     const messageId = generateUUID();
 
