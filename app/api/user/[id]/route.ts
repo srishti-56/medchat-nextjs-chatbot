@@ -1,8 +1,9 @@
 import { auth } from '@/app/(auth)/auth';
 import { getUserById } from '@/lib/db/queries';
+import { type NextRequest } from 'next/server';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await auth();
