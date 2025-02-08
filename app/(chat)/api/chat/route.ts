@@ -44,7 +44,8 @@ type AllowedTools =
   | 'getWeather'
   | 'getDoctorBySpeciality'
   | 'validatePatientFile'
-  | 'updateUserInfo';
+  | 'updateUserInfo'
+  | 'diagnoseIssue';
 
 const blocksTools: Array<AllowedTools> = [
   'createDocument',
@@ -55,7 +56,7 @@ const blocksTools: Array<AllowedTools> = [
 
 const weatherTools: Array<AllowedTools> = ['getWeather'];
 
-const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality'];
+const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality', 'diagnoseIssue'];
 
 const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools, 'updateUserInfo'];
 
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
-        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality', 'validatePatientFile', 'updateUserInfo'],
+        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality', 'validatePatientFile', 'updateUserInfo', 'diagnoseIssue'],
         tools: {
           getWeather: {
             description: 'Get the current weather at a location',
@@ -551,6 +552,51 @@ export async function POST(request: Request) {
                   error: 'Failed to update user information',
                 };
               }
+            },
+          },
+          diagnoseIssue: {
+            description: 'Analyze symptoms and provide a preliminary diagnosis',
+            parameters: z.object({
+              symptoms: z.array(z.string()).describe('List of symptoms reported by the patient'),
+              duration: z.string().optional().describe('Duration of symptoms'),
+              severity: z.string().optional().describe('Severity of symptoms'),
+              age: z.string().optional().describe('Patient age'),
+              gender: z.string().optional().describe('Patient gender'),
+              medicalHistory: z.array(z.string()).optional().describe('Relevant medical history'),
+              currentMedications: z.array(z.string()).optional().describe('Current medications'),
+            }),
+            execute: async ({ symptoms, duration, severity, age, gender, medicalHistory, currentMedications }) => {
+              const { fullStream } = streamText({
+                model: customModel(model.apiIdentifier),
+                system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
+                provide a preliminary analysis of potential conditions. Be clear that this is not a definitive diagnosis 
+                and the patient should consult with a healthcare professional for proper evaluation.`,
+                prompt: JSON.stringify({
+                  symptoms,
+                  duration,
+                  severity,
+                  age,
+                  gender,
+                  medicalHistory,
+                  currentMedications
+                }),
+              });
+
+              let analysis = '';
+              for await (const delta of fullStream) {
+                if (delta.type === 'text-delta') {
+                  analysis += delta.textDelta;
+                  dataStream.writeData({
+                    type: 'text-delta',
+                    content: delta.textDelta,
+                  });
+                }
+              }
+
+              return {
+                analysis,
+                disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
+              };
             },
           },
         },
