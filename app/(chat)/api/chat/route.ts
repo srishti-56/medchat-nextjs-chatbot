@@ -581,24 +581,20 @@ export async function POST(request: Request) {
               currentMedications: z.array(z.string()).optional().describe('Current medications'),
             }),
             execute: async ({ symptoms, duration, severity, age, gender, medicalHistory, currentMedications }) => {
-              const prompt = `Please analyze these patient symptoms and provide a preliminary medical analysis:
-              
-Patient Information:
+              const prompt = `
 - Age: ${age || 'Not provided'}
 - Gender: ${gender || 'Not provided'}
 - Symptoms: ${symptoms.join(', ')}
 - Duration: ${duration || 'Not specified'}
 - Severity: ${severity || 'Not specified'}
 ${medicalHistory?.length ? `- Medical History: ${medicalHistory.join(', ')}` : ''}
-${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}
-
-Please provide a preliminary analysis of potential conditions based on these symptoms.`;
+${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}`;
 
               try {
                 // Use text generation without streaming
                 const response = await Hf.textGeneration({
-                  model: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
-                  inputs: `<|prompter|>${prompt}<|endoftext|><|assistant|>`,
+                  model: 'segadeds/Medical_Diagnosis',
+                  inputs: `${prompt}`,
                   parameters: {
                     max_new_tokens: 500,
                     typical_p: 0.2,
