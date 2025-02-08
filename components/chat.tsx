@@ -23,6 +23,7 @@ export function Chat({
   selectedVisibilityType,
   isReadonly,
   userId,
+  userInfo,
 }: {
   id: string;
   initialMessages: Array<Message>;
@@ -30,9 +31,12 @@ export function Chat({
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   userId: string;
+  userInfo?: {
+    name?: string | null;
+    age?: string | null;
+  };
 }) {
   const { mutate } = useSWRConfig();
-  const { data: userInfo } = useSWR(`/api/user/${userId}`, fetcher);
 
   const {
     messages,

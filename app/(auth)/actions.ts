@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { createUser, getUser } from '@/lib/db/queries';
+import { createUser, getUser, getUserById } from '@/lib/db/queries';
 
 import { signIn } from './auth';
 
@@ -13,6 +13,10 @@ const authFormSchema = z.object({
 
 export interface LoginActionState {
   status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
+  userInfo?: {
+    name?: string | null;
+    age?: string | null;
+  };
 }
 
 export const login = async (
@@ -25,13 +29,25 @@ export const login = async (
       password: formData.get('password'),
     });
 
-    await signIn('credentials', {
+    const result = await signIn('credentials', {
       email: validatedData.email,
       password: validatedData.password,
       redirect: false,
     });
 
-    return { status: 'success' };
+    if (result?.ok) {
+      // Get user info after successful login
+      const [user] = await getUser(validatedData.email);
+      return { 
+        status: 'success',
+        userInfo: {
+          name: user.name,
+          age: user.age
+        }
+      };
+    }
+
+    return { status: 'failed' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
@@ -49,6 +65,10 @@ export interface RegisterActionState {
     | 'failed'
     | 'user_exists'
     | 'invalid_data';
+  userInfo?: {
+    name?: string | null;
+    age?: string | null;
+  };
 }
 
 export const register = async (
@@ -61,19 +81,26 @@ export const register = async (
       password: formData.get('password'),
     });
 
-    const [user] = await getUser(validatedData.email);
+    const [existingUser] = await getUser(validatedData.email);
 
-    if (user) {
+    if (existingUser) {
       return { status: 'user_exists' } as RegisterActionState;
     }
-    await createUser(validatedData.email, validatedData.password);
+
+    const user = await createUser(validatedData.email, validatedData.password);
     await signIn('credentials', {
       email: validatedData.email,
       password: validatedData.password,
       redirect: false,
     });
 
-    return { status: 'success' };
+    return { 
+      status: 'success',
+      userInfo: {
+        name: null,
+        age: null
+      }
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };

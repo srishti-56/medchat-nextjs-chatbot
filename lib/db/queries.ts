@@ -377,3 +377,26 @@ export async function getUserById(id: string) {
     throw error;
   }
 }
+
+export async function updateUserInfo({
+  userId,
+  name,
+  age,
+}: {
+  userId: string;
+  name?: string;
+  age?: string;
+}) {
+  try {
+    return await db
+      .update(user)
+      .set({
+        ...(name ? { name } : {}),
+        ...(age ? { age } : {}),
+      })
+      .where(eq(user.id, userId));
+  } catch (error) {
+    console.error('Failed to update user info in database');
+    throw error;
+  }
+}

@@ -24,6 +24,7 @@ import {
   saveMessages,
   saveSuggestions,
   getDoctorBySpeciality,
+  updateUserInfo
 } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
 import {
@@ -42,7 +43,8 @@ type AllowedTools =
   | 'requestSuggestions'
   | 'getWeather'
   | 'getDoctorBySpeciality'
-  | 'validatePatientFile';
+  | 'validatePatientFile'
+  | 'updateUserInfo';
 
 const blocksTools: Array<AllowedTools> = [
   'createDocument',
@@ -55,7 +57,7 @@ const weatherTools: Array<AllowedTools> = ['getWeather'];
 
 const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality'];
 
-const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools];
+const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools, 'updateUserInfo'];
 
 export async function POST(request: Request) {
   const {
@@ -124,7 +126,7 @@ export async function POST(request: Request) {
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
-        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality', 'validatePatientFile'],
+        experimental_activeTools: ['createDocument', 'updateDocument', 'requestSuggestions', 'getWeather', 'getDoctorBySpeciality', 'validatePatientFile', 'updateUserInfo'],
         tools: {
           getWeather: {
             description: 'Get the current weather at a location',
@@ -526,6 +528,38 @@ export async function POST(request: Request) {
                 kind: document.kind,
                 content: 'The patient file has been validated and updated with references.',
               };
+            },
+          },
+          updateUserInfo: {
+            description: 'Update user profile with name and age',
+            parameters: z.object({
+              name: z.string().optional(),
+              age: z.string().optional(),
+            }),
+            execute: async ({ name, age }) => {
+              if (!session?.user?.id) {
+                return {
+                  error: 'User not authenticated',
+                };
+              }
+
+              try {
+                await updateUserInfo({
+                  userId: session.user.id,
+                  name,
+                  age,
+                });
+
+                return {
+                  message: 'User information updated successfully',
+                  updates: { name, age },
+                };
+              } catch (error) {
+                console.error('Failed to update user info:', error);
+                return {
+                  error: 'Failed to update user information',
+                };
+              }
             },
           },
         },
