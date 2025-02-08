@@ -5,7 +5,6 @@ import {
   streamObject,
   streamText
 } from 'ai';
-import { HfInference } from '@huggingface/inference';
 import { z } from 'zod';
 
 import { auth } from '@/app/(auth)/auth';
@@ -62,25 +61,21 @@ const doctorTools: Array<AllowedTools> = ['getDoctorBySpeciality', 'diagnoseIssu
 
 const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...doctorTools, 'updateUserInfo'];
 
-// Create a new Hugging Face Inference instance
-const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+const GRADIO_URL = "https://segadeds-medical-diagnosis.hf.space/run/predict";
 
-const API_URL = "https://api-inference.huggingface.co/models/segadeds/Medical_Diagnosis";
-
-async function queryModel(text: string) {
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ inputs: text })
+async function queryMedicalDiagnosis(text: string) {
+  const response = await fetch(GRADIO_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      data: [text]
+    })
   });
-
+  
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-
+  
   return await response.json();
 }
 
@@ -601,20 +596,27 @@ export async function POST(request: Request) {
             }),
             execute: async ({ symptoms, duration, severity, age, gender, medicalHistory, currentMedications }) => {
               const prompt = `
+Patient Information:
 - Age: ${age || 'Not provided'}
 - Gender: ${gender || 'Not provided'}
 - Symptoms: ${symptoms.join(', ')}
 - Duration: ${duration || 'Not specified'}
 - Severity: ${severity || 'Not specified'}
 ${medicalHistory?.length ? `- Medical History: ${medicalHistory.join(', ')}` : ''}
-${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}`;
+${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}
+
+Based on the above information, please provide a preliminary analysis of potential conditions.`;
 
               try {
-                // Call the model using REST API
-                const result = await queryModel(prompt);
+                // Call the Gradio endpoint
+                const result = await queryMedicalDiagnosis(prompt);
                 
-                // The API returns an array of generated texts
-                const text = Array.isArray(result) ? result[0].generated_text : result.generated_text;
+                if (!result.data) {
+                  throw new Error('No data in response');
+                }
+
+                // Get the diagnosis text from the result
+                const text = result.data[0];
 
                 // Write the response text in chunks to simulate streaming
                 const chunkSize = 10;
@@ -624,6 +626,9 @@ ${currentMedications?.length ? `- Current Medications: ${currentMedications.join
                     type: 'text-delta',
                     content: chunk
                   });
+                  
+                  // Add a small delay to make the streaming more natural
+                  await new Promise(resolve => setTimeout(resolve, 10));
                 }
 
                 return {
@@ -631,8 +636,8 @@ ${currentMedications?.length ? `- Current Medications: ${currentMedications.join
                   disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
                 };
               } catch (error) {
-                console.error('Error calling HuggingFace API:', error);
-                // Fallback to default model if HuggingFace fails
+                console.error('Error calling Gradio endpoint:', error);
+                // Fallback to default model if Gradio fails
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
