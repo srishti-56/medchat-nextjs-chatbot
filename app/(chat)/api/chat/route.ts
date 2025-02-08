@@ -65,6 +65,25 @@ const allTools: Array<AllowedTools> = [...blocksTools, ...weatherTools, ...docto
 // Create a new Hugging Face Inference instance
 const Hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
 
+const API_URL = "https://api-inference.huggingface.co/models/segadeds/Medical_Diagnosis";
+
+async function queryModel(text: string) {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ inputs: text })
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 export async function POST(request: Request) {
   const {
     id,
@@ -591,22 +610,14 @@ ${medicalHistory?.length ? `- Medical History: ${medicalHistory.join(', ')}` : '
 ${currentMedications?.length ? `- Current Medications: ${currentMedications.join(', ')}` : ''}`;
 
               try {
-                // Use text generation without streaming
-                const response = await Hf.textGeneration({
-                  model: 'segadeds/Medical_Diagnosis',
-                  inputs: `${prompt}`,
-                  parameters: {
-                    max_new_tokens: 500,
-                    typical_p: 0.2,
-                    repetition_penalty: 1,
-                    truncate: 1000,
-                    return_full_text: false
-                  }
-                });
+                // Call the model using REST API
+                const result = await queryModel(prompt);
+                
+                // The API returns an array of generated texts
+                const text = Array.isArray(result) ? result[0].generated_text : result.generated_text;
 
                 // Write the response text in chunks to simulate streaming
                 const chunkSize = 10;
-                const text = response.generated_text;
                 for (let i = 0; i < text.length; i += chunkSize) {
                   const chunk = text.slice(i, i + chunkSize);
                   dataStream.writeData({
@@ -620,7 +631,7 @@ ${currentMedications?.length ? `- Current Medications: ${currentMedications.join
                   disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
                 };
               } catch (error) {
-                console.error('Error calling HuggingFace model:', error);
+                console.error('Error calling HuggingFace API:', error);
                 // Fallback to default model if HuggingFace fails
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
