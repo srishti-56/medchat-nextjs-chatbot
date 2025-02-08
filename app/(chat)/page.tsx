@@ -1,19 +1,26 @@
-import { cookies } from 'next/headers';
-
-import { Chat } from '@/components/chat';
-import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
 import { generateUUID } from '@/lib/utils';
-import { DataStreamHandler } from '@/components/data-stream-handler';
+import { Chat } from '@/components/chat';
+import { DEFAULT_MODEL_NAME } from '@/lib/ai/models';
+import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/db/queries';
+import { notFound } from 'next/navigation';
 
 export default async function Page() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    notFound();
+  }
+
   const id = generateUUID();
 
-  const cookieStore = await cookies();
-  const modelIdFromCookie = cookieStore.get('model-id')?.value;
-
-  const selectedModelId =
-    models.find((model) => model.id === modelIdFromCookie)?.id ||
-    DEFAULT_MODEL_NAME;
+  // Get user info
+  const users = await getUser(session.user.email || '');
+  const user = users[0];
+  const userInfo = user ? {
+    name: user.name,
+    age: user.age
+  } : undefined;
 
   return (
     <>
@@ -21,11 +28,12 @@ export default async function Page() {
         key={id}
         id={id}
         initialMessages={[]}
-        selectedModelId={selectedModelId}
+        selectedModelId={DEFAULT_MODEL_NAME}
         selectedVisibilityType="private"
         isReadonly={false}
+        userId={session.user.id}
+        userInfo={userInfo}
       />
-      <DataStreamHandler id={id} />
     </>
   );
 }
