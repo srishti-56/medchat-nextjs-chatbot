@@ -8,19 +8,17 @@ import { getChatById, getMessagesByChatId, getUser } from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 
-type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
-export default async function Page(props: Props) {
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
+  const { id } = params;
+  
   const session = await auth();
 
   if (!session?.user?.id) {
     notFound();
   }
 
-  const chat = await getChatById({ id: props.params.id });
+  const chat = await getChatById({ id });
 
   if (!chat) {
     notFound();
@@ -37,7 +35,7 @@ export default async function Page(props: Props) {
   }
 
   const [messagesFromDb, users] = await Promise.all([
-    getMessagesByChatId({ id: props.params.id }),
+    getMessagesByChatId({ id }),
     getUser(session.user.email || '')
   ]);
 
@@ -63,7 +61,7 @@ export default async function Page(props: Props) {
           userId={session.user.id}
           userInfo={userInfo}
         />
-        <DataStreamHandler id={props.params.id} />
+        <DataStreamHandler id={id} />
       </div>
     </div>
   );
