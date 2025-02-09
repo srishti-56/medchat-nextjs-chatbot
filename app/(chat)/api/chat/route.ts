@@ -673,13 +673,13 @@ Please be clear and empathetic in your response. [/INST]`;
                   throw new Error('Invalid response format');
                 }
 
-                // Write internal tool response with raw result
+                // Write internal tool response with raw result for the chatbot
                 dataStream.writeData({
                   type: 'internal-tool-response',
-                  content: JSON.stringify({
+                  content: {
                     rawResponse: result,
                     internalOnly: true
-                  })
+                  }
                 });
 
                 // Get the generated text
@@ -691,7 +691,8 @@ Please be clear and empathetic in your response. [/INST]`;
                   const chunk = text.slice(i, i + chunkSize);
                   dataStream.writeData({
                     type: 'text-delta',
-                    content: chunk
+                    content: chunk,
+                    internalOnly: false  // This will be shown in UI
                   });
                   
                   // Add a small delay to make the streaming more natural
@@ -701,7 +702,7 @@ Please be clear and empathetic in your response. [/INST]`;
                 return {
                   analysis: text,
                   disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation.",
-                  internalOnly: true
+                  internalOnly: false  // This will be shown in UI
                 };
               } catch (error) {
                 console.error('Error calling MedLLaMA model:', error);
@@ -729,13 +730,15 @@ Please be clear and empathetic in your response. [/INST]`;
                     dataStream.writeData({
                       type: 'text-delta',
                       content: delta.textDelta,
+                      internalOnly: false  // This will be shown in UI
                     });
                   }
                 }
 
                 return {
                   analysis,
-                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
+                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation.",
+                  internalOnly: false  // This will be shown in UI
                 };
               }
             },
