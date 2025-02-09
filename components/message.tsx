@@ -173,7 +173,7 @@ const PurePreviewMessage = ({
                         ) : isLoading ? (
                           <MedicalThinking />
                         ) : (
-                          <pre>{"Eureka!"}</pre>
+                          <pre>{"🩺"}</pre>
                         )}
                       </div>
                     );
@@ -247,7 +247,7 @@ export const ThinkingMessage = () => {
 
   return (
     <motion.div
-      className="w-full mx-auto max-w-3xl px-4 group/message "
+      className="w-full mx-auto max-w-3xl px-4 group/message"
       initial={{ y: 5, opacity: 0 }}
       animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
       data-role={role}
@@ -265,8 +265,8 @@ export const ThinkingMessage = () => {
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-4 text-muted-foreground">
-            Thinking...
+          <div className="flex flex-col gap-4">
+            <MedicalThinking />
           </div>
         </div>
       </div>
