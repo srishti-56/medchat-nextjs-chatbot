@@ -710,7 +710,8 @@ Please be clear and empathetic in your response. [/INST]`;
                 const { fullStream } = streamText({
                   model: customModel(model.apiIdentifier),
                   system: `You are a medical AI assistant. Based on the provided symptoms and patient information, 
-                identify the most likely conditions and be empathetic and caring. Keep it jargon-free, preferring common terms and phrases and even analogies. Only provide medical-jargon details if the user asks for it. 
+                identify the most likely conditions and be empathetic and caring. Keep it jargon-free, preferring common terms and phrases and even analogies. Only provide medical-jargon details if the user asks for it.
+                First share the diagonsis in a sentence or two and ask the user if they would like to know more about it, possible causes or remedies. 
                 Add a sentence - 'This is not a definitive diagnosis and please consult with a healthcare professional for proper evaluation' at the end.`,
                   prompt: JSON.stringify({
                     symptoms,
