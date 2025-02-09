@@ -302,7 +302,7 @@ const MedicalThinking = () => {
   const Icon = icons[currentIcon].component;
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-md">
+    <div className="flex items-center gap-4 p-4 rounded-lg shadow-md">
       <div className="relative">
         <Icon 
           className={`w-8 h-8 ${icons[currentIcon].color} animate-pulse`}

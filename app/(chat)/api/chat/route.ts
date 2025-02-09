@@ -105,6 +105,22 @@ async function queryMedicalDiagnosis(text: string) {
   return await response.json();
 }
 
+// Add a function to update chat title
+async function updateChatTitle(chatId: string, diagnosis: string, userId: string) {
+  try {
+    const shortTitle = diagnosis.split('.')[0]; // Get first sentence
+    if (shortTitle) {
+      await saveChat({
+        id: chatId,
+        title: shortTitle.substring(0, 80), // Limit to 80 chars
+        userId: userId,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to update chat title:', error);
+  }
+}
+
 export async function POST(request: Request) {
   const {
     id,
@@ -673,6 +689,14 @@ Please be clear and empathetic in your response. [/INST]`;
                   throw new Error('Invalid response format');
                 }
 
+                // Get the generated text
+                const text = result[0].generated_text;
+
+                // Update chat title with diagnosis
+                if (session?.user?.id) {
+                  await updateChatTitle(id, text, session.user.id);
+                }
+
                 // Write internal tool response with raw result for the chatbot
                 dataStream.writeData({
                   type: 'internal-tool-response',
@@ -681,9 +705,6 @@ Please be clear and empathetic in your response. [/INST]`;
                     internalOnly: true
                   }
                 });
-
-                // Get the generated text
-                const text = result[0].generated_text;
 
                 // Write the response text in chunks to simulate streaming
                 const chunkSize = 10;
