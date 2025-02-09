@@ -751,21 +751,51 @@ Please be clear and empathetic in your response. [/INST]`;
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
 
-              console.log('All messages before filtering:', responseMessagesWithoutIncompleteToolCalls.map(msg => ({
+              // Helper function to check if a message should be internal
+              const isInternalMessage = (content: any): boolean => {
+                if (typeof content === 'object' && content !== null) {
+                  if ('internalOnly' in content) {
+                    return content.internalOnly;
+                  }
+                  // For array content
+                  if (Array.isArray(content)) {
+                    return content.some(item => 
+                      typeof item === 'object' && item !== null && item.internalOnly
+                    );
+                  }
+                }
+                return false;
+              };
+
+              // Mark tool messages as internal
+              const processedMessages = responseMessagesWithoutIncompleteToolCalls.map(msg => {
+                if (msg.role === 'tool') {
+                  return {
+                    ...msg,
+                    content: {
+                      ...msg.content,
+                      internalOnly: true
+                    }
+                  };
+                }
+                return msg;
+              });
+
+              console.log('All messages before filtering:', processedMessages.map(msg => ({
                 role: msg.role,
                 content: msg.content,
-                internalOnly: msg.content?.internalOnly
+                isInternal: isInternalMessage(msg.content)
               })));
 
               // Filter out messages marked as internalOnly
-              const uiMessages = responseMessagesWithoutIncompleteToolCalls.filter(
-                message => !message.content?.internalOnly
+              const uiMessages = processedMessages.filter(
+                message => !isInternalMessage(message.content)
               );
               
               console.log('Messages being sent to UI:', uiMessages.map(msg => ({
                 role: msg.role,
                 content: msg.content,
-                internalOnly: msg.content?.internalOnly
+                isInternal: isInternalMessage(msg.content)
               })));
 
               await saveMessages({
