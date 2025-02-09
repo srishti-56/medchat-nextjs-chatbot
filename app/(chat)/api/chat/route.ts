@@ -438,6 +438,7 @@ export async function POST(request: Request) {
                 return {
                   error: 'No doctors found for this specialty',
                   speciality,
+                  internalOnly: true
                 };
               }
 
@@ -483,9 +484,20 @@ export async function POST(request: Request) {
                 consultFee: doctor.consultFee
               }));
 
+              // Write internal tool response
+              dataStream.writeData({
+                type: 'internal-tool-response',
+                content: JSON.stringify({
+                  message: `Found ${doctors.length} doctor(s) specializing in ${speciality}`,
+                  doctorData: doctorInfos,
+                  internalOnly: true
+                })
+              });
+
               return {
-                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}: ''}`,
-                doctorData: doctorInfos
+                message: `Found ${doctors.length} doctor(s) specializing in ${speciality}`,
+                doctorData: doctorInfos,
+                internalOnly: true
               };
             },
           },
@@ -587,6 +599,7 @@ export async function POST(request: Request) {
               if (!session?.user?.id) {
                 return {
                   error: 'User not authenticated',
+                  internalOnly: true
                 };
               }
 
@@ -597,20 +610,32 @@ export async function POST(request: Request) {
                   age,
                 });
 
+                // Write internal tool response
+                dataStream.writeData({
+                  type: 'internal-tool-response',
+                  content: JSON.stringify({
+                    message: 'User information updated successfully',
+                    updates: { name, age },
+                    internalOnly: true
+                  })
+                });
+
                 return {
                   message: 'User information updated successfully',
                   updates: { name, age },
+                  internalOnly: true
                 };
               } catch (error) {
                 console.error('Failed to update user info:', error);
                 return {
                   error: 'Failed to update user information',
+                  internalOnly: true
                 };
               }
             },
           },
           diagnoseIssue: {
-            description: 'Analyze symptoms and provide a preliminary but brief diagnosis.',
+            description: 'Analyze symptoms and provide a preliminary diagnosis.',
             parameters: z.object({
               symptoms: z.array(z.string()).describe('List of symptoms reported by the patient'),
               duration: z.string().optional().describe('Duration of symptoms'),
@@ -648,6 +673,15 @@ Please be clear and empathetic in your response. [/INST]`;
                   throw new Error('Invalid response format');
                 }
 
+                // Write internal tool response with raw result
+                dataStream.writeData({
+                  type: 'internal-tool-response',
+                  content: JSON.stringify({
+                    rawResponse: result,
+                    internalOnly: true
+                  })
+                });
+
                 // Get the generated text
                 const text = result[0].generated_text;
 
@@ -666,7 +700,8 @@ Please be clear and empathetic in your response. [/INST]`;
 
                 return {
                   analysis: text,
-                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation."
+                  disclaimer: "This is a preliminary analysis and not a definitive diagnosis. Please consult with a healthcare professional for proper evaluation.",
+                  internalOnly: true
                 };
               } catch (error) {
                 console.error('Error calling MedLLaMA model:', error);
@@ -712,8 +747,13 @@ Please be clear and empathetic in your response. [/INST]`;
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
 
+              // Filter out messages marked as internalOnly
+              const uiMessages = responseMessagesWithoutIncompleteToolCalls.filter(
+                message => !message.content?.internalOnly
+              );
+
               await saveMessages({
-                messages: responseMessagesWithoutIncompleteToolCalls.map(
+                messages: uiMessages.map(
                   (message) => {
                     const messageId = generateUUID();
 
