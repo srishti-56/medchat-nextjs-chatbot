@@ -3,7 +3,8 @@
 import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useEffect } from 'react';
+import { Heart, Activity, Stethoscope } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
 
@@ -169,8 +170,9 @@ const PurePreviewMessage = ({
                             result={result}
                             isReadonly={isReadonly}
                           />
+                        ) : isLoading ? (
+                          <MedicalThinking />
                         ) : (
-                          // <pre>{JSON.stringify(result, null, 2)}</pre>
                           <pre>{"Eureka!"}</pre>
                         )}
                       </div>
@@ -269,5 +271,50 @@ export const ThinkingMessage = () => {
         </div>
       </div>
     </motion.div>
+  );
+};
+
+const MedicalThinking = () => {
+  const [dotCount, setDotCount] = useState(0);
+  const [currentIcon, setCurrentIcon] = useState(0);
+  
+  const icons = [
+    { component: Heart, color: "text-red-500" },
+    { component: Activity, color: "text-blue-500" },
+    { component: Stethoscope, color: "text-green-500" }
+  ];
+
+  useEffect(() => {
+    const dotInterval = setInterval(() => {
+      setDotCount((prev) => (prev + 1) % 4);
+    }, 500);
+
+    const iconInterval = setInterval(() => {
+      setCurrentIcon((prev) => (prev + 1) % icons.length);
+    }, 1500);
+
+    return () => {
+      clearInterval(dotInterval);
+      clearInterval(iconInterval);
+    };
+  }, []);
+
+  const Icon = icons[currentIcon].component;
+
+  return (
+    <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-md">
+      <div className="relative">
+        <Icon 
+          className={`w-8 h-8 ${icons[currentIcon].color} animate-pulse`}
+          strokeWidth={2}
+        />
+      </div>
+      <div className="flex items-center">
+        <span className="text-lg font-medium text-gray-700">
+          Analyzing your health information
+          {'.'.repeat(dotCount)}
+        </span>
+      </div>
+    </div>
   );
 };
