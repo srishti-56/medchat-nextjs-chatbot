@@ -783,7 +783,7 @@ Please be clear and empathetic in your response. [/INST]`;
 
               console.log('All messages before filtering:', processedMessages.map(msg => ({
                 role: msg.role,
-                content: msg.content,
+                content:JSON.stringify(msg.content),
                 isInternal: isInternalMessage(msg.content)
               })));
 
@@ -794,7 +794,7 @@ Please be clear and empathetic in your response. [/INST]`;
               
               console.log('Messages being sent to UI:', uiMessages.map(msg => ({
                 role: msg.role,
-                content: msg.content,
+                content: JSON.stringify(msg.content),
                 isInternal: isInternalMessage(msg.content)
               })));
 

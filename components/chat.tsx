@@ -87,7 +87,8 @@ export function Chat({
   const visibleMessages = messages.filter(msg => 
     !isInternalMessage(msg.content) || !msg.content.internalOnly
   );
-
+  console.log('Visible messages:', visibleMessages);
+  
   return (
     <div className="relative flex-1 flex flex-col h-full">
       <div className="flex flex-col min-w-0 h-dvh bg-background">
