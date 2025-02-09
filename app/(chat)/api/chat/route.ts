@@ -750,10 +750,22 @@ Please be clear and empathetic in your response. [/INST]`;
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
 
+              console.log('All messages before filtering:', responseMessagesWithoutIncompleteToolCalls.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                internalOnly: msg.content?.internalOnly
+              })));
+
               // Filter out messages marked as internalOnly
               const uiMessages = responseMessagesWithoutIncompleteToolCalls.filter(
                 message => !message.content?.internalOnly
               );
+              
+              console.log('Messages being sent to UI:', uiMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+                internalOnly: msg.content?.internalOnly
+              })));
 
               await saveMessages({
                 messages: uiMessages.map(

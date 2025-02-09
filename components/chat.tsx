@@ -16,6 +16,11 @@ import { VisibilityType } from './visibility-selector';
 import { useBlockSelector } from '@/hooks/use-block';
 import { DebugWindow } from './debug-window';
 
+// Type guard to check if content is an object with internalOnly flag
+function isInternalMessage(content: any): content is { internalOnly: boolean } {
+  return typeof content === 'object' && content !== null && 'internalOnly' in content;
+}
+
 export function Chat({
   id,
   initialMessages,
@@ -64,6 +69,10 @@ export function Chat({
     onFinish: () => {
       mutate('/api/history');
     },
+    onResponse: (response) => {
+      // Log incoming messages for debugging
+      console.log('Incoming message:', response);
+    },
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
@@ -73,6 +82,11 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
+
+  // Filter out internal messages before rendering
+  const visibleMessages = messages.filter(msg => 
+    !isInternalMessage(msg.content) || !msg.content.internalOnly
+  );
 
   return (
     <div className="relative flex-1 flex flex-col h-full">
@@ -88,7 +102,7 @@ export function Chat({
           chatId={id}
           isLoading={isLoading}
           votes={votes}
-          messages={messages}
+          messages={visibleMessages}
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
